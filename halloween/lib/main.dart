@@ -1,125 +1,158 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart'; // For background music and sound effects
+import 'dart:math'; // For random movement
 
-void main() {
-  runApp(const MyApp());
+void main() => runApp(HalloweenGame());
+
+class HalloweenGame extends StatefulWidget {
+  @override
+  _HalloweenGameState createState() => _HalloweenGameState();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProviderStateMixin {
+  late AudioPlayer _audioPlayer; // Marked as 'late' to avoid initialization error
+  List<Offset> _positions = List.filled(5, Offset(0, 0)); // Positions of jack-o'-lanterns
+  int _correctIndex = 0;
+  bool _gameOver = false;
+  Random _random = Random();
+  late AnimationController _controller;
+  List<String> lanternImages = [
+    'assets/p1.png',
+    'assets/p2.png',
+    'assets/p3.png',
+    'assets/p4.png',
+    'assets/p5.png'
+  ]; // Different images for the jack-o'-lanterns
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+  void initState() {
+    super.initState();
+    _startBackgroundMusic();
+    _randomizePositions();
+    _correctIndex = _random.nextInt(5); // Randomly select the correct jack-o'-lantern
+
+    // Initialize AnimationController for random movement
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5), // Increased duration for slower movement
+    )..repeat();
+
+    // Listen to the animation and update the positions
+    _controller.addListener(() {
+      _moveLanterns();
+    });
+  }
+
+  void _startBackgroundMusic() async {
+    _audioPlayer = AudioPlayer();
+    await _audioPlayer.setSource(AssetSource('assets/halloween_music.mp3')); // Background music file
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+  }
+
+  void _randomizePositions() {
+    // Randomize initial positions of the jack-o'-lanterns
+    setState(() {
+      for (int i = 0; i < _positions.length; i++) {
+        _positions[i] = Offset(_random.nextDouble() * 300, _random.nextDouble() * 500);
+      }
+    });
+  }
+
+  void _moveLanterns() {
+    // Randomly move the lanterns within the screen bounds
+    setState(() {
+      for (int i = 0; i < _positions.length; i++) {
+        double dx = _positions[i].dx + (_random.nextDouble() - 0.5) * 10; // Slower movement
+        double dy = _positions[i].dy + (_random.nextDouble() - 0.5) * 10; // Slower movement
+
+        // Ensure the positions are within screen bounds (adjust these values as needed)
+        if (dx < 0) dx = 0;
+        if (dy < 0) dy = 0;
+        if (dx > 300) dx = 300; // Screen width limit
+        if (dy > 500) dy = 500; // Screen height limit
+
+        _positions[i] = Offset(dx, dy);
+      }
+    });
+  }
+
+  void _handleTap(int index) {
+    if (_gameOver) return;
+
+    if (index == _correctIndex) {
+      // Correct lantern clicked
+      setState(() {
+        _gameOver = true;
+      });
+      _showWinMessage();
+    } else {
+      // Wrong lantern, show feedback without ending the game
+      _showWrongTapFeedback();
+    }
+  }
+
+  void _showWinMessage() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("You Found It!"),
+        content: Text("Congratulations, you clicked the correct Jack-o'-lantern!"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _restartGame();
+            },
+            child: Text('Play Again'),
+          ),
+        ],
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  void _showWrongTapFeedback() {
+    // Provide feedback for wrong taps
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Try Again! That's not the right Jack-o'-lantern."),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+  void _restartGame() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _gameOver = false;
+      _randomizePositions();
+      _correctIndex = _random.nextInt(5);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: Text('Halloween Game')),
+        body: Stack(
+          children: List.generate(5, (index) {
+            return Positioned(
+              left: _positions[index].dx,
+              top: _positions[index].dy,
+              child: GestureDetector(
+                onTap: () => _handleTap(index),
+                child: Image.asset(lanternImages[index], width: 100, height: 100), // Use different lantern images
+              ),
+            );
+          }),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    _controller.dispose(); // Dispose the animation controller
+    super.dispose();
   }
 }
