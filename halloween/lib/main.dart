@@ -5,16 +5,18 @@ import 'dart:math'; // For random movement
 void main() => runApp(HalloweenGame());
 
 class HalloweenGame extends StatefulWidget {
+  const HalloweenGame({super.key});
+
   @override
   _HalloweenGameState createState() => _HalloweenGameState();
 }
 
 class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProviderStateMixin {
   late AudioPlayer _audioPlayer; // Marked as 'late' to avoid initialization error
-  List<Offset> _positions = List.filled(5, Offset(0, 0)); // Positions of jack-o'-lanterns
+  final List<Offset> _positions = List.filled(5, const Offset(0, 0)); // Positions of jack-o'-lanterns
   int _correctIndex = 0;
   bool _gameOver = false;
-  Random _random = Random();
+  final Random _random = Random();
   late AnimationController _controller;
   List<String> lanternImages = [
     'assets/p1.png',
@@ -46,7 +48,9 @@ class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProvider
   void _startBackgroundMusic() async {
     _audioPlayer = AudioPlayer();
     await _audioPlayer.setSource(AssetSource('assets/halloween_music.mp3')); // Background music file
-    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop the music
+    _audioPlayer.setVolume(0.5); // Optional: set volume (0.0 to 1.0)
+    _audioPlayer.resume(); // Start playing the music
   }
 
   void _randomizePositions() {
@@ -86,7 +90,6 @@ class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProvider
       });
       _showWinMessage();
     } else {
-      // Wrong lantern, show feedback without ending the game
       _showWrongTapFeedback();
     }
   }
@@ -95,15 +98,15 @@ class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProvider
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text("You Found It!"),
-        content: Text("Congratulations, you clicked the correct Jack-o'-lantern!"),
+        title: const Text("You Found It!"),
+        content: const Text("Congratulations, you clicked the correct Jack-o'-lantern!"),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _restartGame();
             },
-            child: Text('Play Again'),
+            child: const Text('Play Again'),
           ),
         ],
       ),
@@ -113,7 +116,7 @@ class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProvider
   void _showWrongTapFeedback() {
     // Provide feedback for wrong taps
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text("Try Again! That's not the right Jack-o'-lantern."),
         duration: Duration(seconds: 2),
       ),
@@ -132,7 +135,7 @@ class _HalloweenGameState extends State<HalloweenGame> with SingleTickerProvider
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: Text('Halloween Game')),
+        appBar: AppBar(title: const Text('Halloween Game')),
         body: Stack(
           children: List.generate(5, (index) {
             return Positioned(
